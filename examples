@@ -1,0 +1,93 @@
+/*
+  GY-87 10DOF MPU6050+HMC5883L+BMP180 SENSOR
+
+  by: Riza Çelik
+  created on: 12/05/2021
+  license: OSHW 1.0, http://freedomdefined.org/OSHW
+
+  Uno		A4 (SDA), A5 (SCL)
+  Mega2560	20 (SDA), 21 (SCL)
+  Leonardo	2 (SDA), 3 (SCL)
+  Due		20 (SDA), 21 (SCL), SDA1, SCL1
+  STM32		PB7 (SDA),  PB6 (SCL)
+
+  https://jensd.dk/cansat/gy80gy87gy88gy91/datasheet/HMC5883L.pdf
+  https://jensd.dk/cansat/gy80gy87gy88gy91/datasheet/MPU6050.pdf
+  https://jensd.dk/cansat/gy80gy87gy88gy91/datasheet/MPU9250.pdf
+  https://jensd.dk/cansat/gy80gy87gy88gy91/datasheet/BMP180.pdf
+  https://jensd.dk/cansat/gy80gy87gy88gy91/datasheet/BMP085.pdf
+  https://jensd.dk/cansat/gy80gy87gy88gy91/datasheet/ADXL345.pdf
+  https://jensd.dk/cansat/gy80gy87gy88gy91/datasheet/L3G4200D.pdf
+*/
+
+#include <Wire.h> //I2C Arduino Library
+#include <Compass_HMC5883L.h>
+
+Compass_HMC5883L compass;
+
+#define MPU6050 0x68  // I2C 7bit address of MPU6050
+
+void setup() {
+  //Initialize Serial and I2C communications
+  Serial.begin(9600);
+  Wire.begin();
+
+  // MPU6050 Registers for Bypass Mode
+  Wire.beginTransmission(MPU6050);
+  Wire.write(0x37);
+  Wire.write(0x02);
+  Wire.endTransmission();
+
+  // MPU6050 Registers for Disable Master Mode
+  Wire.beginTransmission(MPU6050);
+  Wire.write(0x6A);
+  Wire.write(0x00);
+  Wire.endTransmission();
+
+  // MPU6050 Registers for Disable Sleep Mode
+  Wire.beginTransmission(MPU6050);
+  Wire.write(0x6B);
+  Wire.write(0x00);
+  Wire.endTransmission();
+
+  compass.begin();
+  
+  // Offset x, y value
+  compass.setOffset(0, 0);
+}
+
+void loop() {
+  float x = compass.getX();
+  float y = compass.getY();
+  float z = compass.getZ();
+
+  float heading = atan2(y, x);
+
+  float declinationAngle = (5.7 + (26.0 / 60.0)) / (180 / M_PI);
+  heading += declinationAngle;
+
+  if (heading < 0)
+  {
+    heading += 2 * PI;
+  }
+
+  if (heading > 2 * PI)
+  {
+    heading -= 2 * PI;
+  }
+
+  // Convert to degrees
+  float headingDegrees = heading * 180 / M_PI;
+
+  //Print out values of each axis
+  Serial.print("x: ");
+  Serial.print(x);
+  Serial.print("  y: ");
+  Serial.print(y);
+  Serial.print("  z: ");
+  Serial.print(z);
+  Serial.print("  h: ");
+  Serial.println(headingDegrees);
+
+  delay(50);
+}
